@@ -71,9 +71,10 @@ export default function Home({ navigation }) {
 
   const addTodo = (todo) => {
     if (todo.title.length > 3) {
+      key = Date.now().toString();
       db.collection("TodoList").add({
         title: todo.title,
-        key: Date.now().toString(),
+        key: key,
         userID: firebase.auth().currentUser.uid,
       })
         .then((docRef) => {
@@ -82,6 +83,7 @@ export default function Home({ navigation }) {
         .catch((error) => {
           console.error("Error adding document: ", error);
         });
+      todo.key = key;
       setTodoes((prevTodos) => {
         return [
           todo,

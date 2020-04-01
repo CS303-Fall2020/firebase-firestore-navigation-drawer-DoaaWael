@@ -98,24 +98,23 @@ export default function ReviewDetails({ navigation }) {
     const checkHandler = async (item) => {
 
         var todoItem = db.collection("TodoPoint").where('key', '==', item.key);
-        todoItem.get().then((querySnapshot) => {
-            querySnapshot.forEach((doc) => {
-                if (item.check) {
-                    doc.ref.update({ check: false });
-                } else {
-                    doc.ref.update({ check: true });
-                }
+        todoItem
+            .get()
+            .then((querySnapshot) => {
+                querySnapshot.forEach((doc) => {
+                    console.log(item.check)
+                    if (item.check === true) {
+                        doc.ref.update({ check: false });
+                        item.check = false;
+                    } else if (item.check === false) {
+                        doc.ref.update({ check: true });
+                        item.check = true;
+                    }
+                });
+                setList((prevList) => {
+                    return [item, ...prevList.filter((todoitem) => todoitem.key != item.key)]
+                })
             });
-        });
-        setList(() => {
-
-            if (item.check) {
-                item.check = false;
-            } else {
-                item.check = true;
-            }
-            return todoList;
-        })
 
     }
 
