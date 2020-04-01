@@ -14,6 +14,7 @@ export default class Welcome extends Component {
             this.props.navigation.navigate('Home')
         }, 5000)
     }
+    
     render() {
         return (
             <View style={styles.container}>

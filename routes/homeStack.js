@@ -21,8 +21,11 @@ const screens = {
     },
     ReviewDetails: {
         screen: ReviewDetails,
-        navigationOptions: {
-            title: 'ReviewDetails',
+        navigationOptions: ({ navigation }) => {
+            return {
+                headerTitle: () => <Header navigation={navigation} title='ReviewDetails' icons={true} />
+            }
+
         }
     },
 

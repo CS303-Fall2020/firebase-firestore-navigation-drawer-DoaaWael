@@ -21,9 +21,14 @@ import axios from 'axios';
 import { TouchableOpacity } from 'react-native-gesture-handler'
 import FlatButton from '../shared/button'
 import * as firebase from 'firebase'
-
+import { decode, encode } from 'base-64'
 
 export default function Home({ navigation }) {
+
+
+  if (!global.btoa) { global.btoa = encode }
+
+  if (!global.atob) { global.atob = decode }
 
   const [todos, setTodoes] = useState([]);
 
@@ -33,60 +38,57 @@ export default function Home({ navigation }) {
 
   const [addModalOpen, setAddModelOpen] = useState(false);
 
+  var db = firebase.firestore();
+
   useEffect(() => {
     loadData();
   }, [])
 
-  const loadData = async () => {
+  useEffect(() => {
+    let list = todos;
+  }, [todos])
+
+  const loadData = () => {
 
     setloading(false);
     setOffline(false);
-    axios.get('https://my-json-server.typicode.com/DoaaWael/ReactNative/TodoList')
-      .then((res => {
+    db.collection("TodoList").where("userID", "==", firebase.auth().currentUser.uid)
+      .get()
+      .then((querySnapshot) => {
         setloading(true);
-        AsyncStorage.setItem('TodoList', JSON.stringify(res.data));
-      })
-      ).catch(error => { console.log(error + "Error"), setOffline(true) });
-    if (!offline) {
-      displayData();
-    }
-
+        setTodoes([]);
+        querySnapshot.forEach((doc) => {
+          console.log(doc.data())
+          setTodoes((prevTodos) => {
+            return [
+              doc.data(),
+              ...prevTodos
+            ]
+          })
+        });
+      }).catch((error) => console.log(error))
   }
-
-
-  const updateAll = async () => {
-    try {
-      await AsyncStorage.setItem('TodoList', JSON.stringify(todos))
-        .catch(error => { console.log(error + "Error") });
-    } catch (error) {
-      console.log(error);
-    }
-  }
-
-  const displayData = async () => {
-
-    try {
-      let todoList = await AsyncStorage.getItem('TodoList');
-      setTodoes(JSON.parse(todoList));
-      console.log(todos)
-
-    } catch (error) {
-      setOffline(true);
-      console.log(error);
-    }
-  }
-
-
 
   const addTodo = (todo) => {
     if (todo.title.length > 3) {
-      todo.key = Date.now().toString();
+      db.collection("TodoList").add({
+        title: todo.title,
+        key: Date.now().toString(),
+        userID: firebase.auth().currentUser.uid,
+      })
+        .then((docRef) => {
+          console.log("Document written with ID: ", docRef.id);
+        })
+        .catch((error) => {
+          console.error("Error adding document: ", error);
+        });
       setTodoes((prevTodos) => {
         return [
           todo,
           ...prevTodos
         ]
       })
+
     } else {
       Alert.alert('OOPS', 'Todos must be over 3 chars long', [
         { text: 'understood', onPress: () => console.log('alert closed') }
@@ -95,39 +97,44 @@ export default function Home({ navigation }) {
     setAddModelOpen(false);
   }
 
-
   const editTodo = (item) => {
     var key = item.key;
+    var todoItem = db.collection("TodoList").where('key', '==', key);
+    todoItem.get().then((querySnapshot) => {
+      querySnapshot.forEach((doc) => {
+        doc.ref.update({ title: item.title });
+        console.log("Document successfully updated!");
+      });
+    });
     setTodoes((prevTodos) => {
       return [item, ...prevTodos.filter(todo => todo.key != key)]
     })
-    // updateAll();
   }
 
   const deleteHandler = (item) => {
     var key = item.key;
+    var todoItem = db.collection('TodoList').where('key', '==', key);
+    var todoPoint = db.collection('TodoPoint').where('todoListKey', '==', key);
+    todoPoint.get().then((querySnapshot) => {
+      querySnapshot.forEach((doc) => {
+        doc.ref.delete();
+        console.log("Document successfully deleted!");
+      });
+      todoItem.get().then((querySnapshot) => {
+        querySnapshot.forEach((doc) => {
+          doc.ref.delete();
+          console.log("Document successfully deleted!");
+        });
+      });
+    });
     setTodoes((prevTodos) => {
       return [...prevTodos.filter(todo => todo.key != key)];
     })
-    updateAll();
   }
-
-  const onLogoutPress = () => {
-    console.log('logout');
-    firebase.auth().signOut();
-  }
-
-  useEffect(() => {
-
-    let list = todos;
-    // updateAll();
-  }, [todos])
-
 
   return (
 
     <View style={styles.container}>
-      <Button title='logout' onPress={onLogoutPress} />
       <StatusBar backgroundColor="#4f6d7a"
         barStyle='light-content'
       />
@@ -161,9 +168,7 @@ export default function Home({ navigation }) {
         style={globalStyles.modelToggle}
       />
       <View style={styles.content}>
-        <View style={{padding: 20}}>
-          <Text>Hello {firebase.auth().currentUser.email}</Text>
-        </View>
+
         <View style={styles.list}>
           {!Loading && !offline ? (
             <ActivityIndicator style={styles.loading} size={"large"} color="#333" />
@@ -209,6 +214,4 @@ const styles = StyleSheet.create({
     alignContent: 'center',
 
   }
-
-
 })

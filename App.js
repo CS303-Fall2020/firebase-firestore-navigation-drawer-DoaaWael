@@ -7,6 +7,9 @@ import ApiKeys from './constants/ApiKeys'
 import * as firebase from 'firebase'
 import AuthStack from './routes/authStack'
 
+// const firebase = require("firebase");
+// Required for side-effects
+require("firebase/firestore");
 
 
 
@@ -21,13 +24,17 @@ export default class App extends React.Component {
     }
     if (!firebase.apps.length) {
       firebase.initializeApp(ApiKeys.FirebaseConfig)
+
     }
+
     firebase.auth().onAuthStateChanged((user) => {
       this.setState({ isAuthReady: true });
       this.setState({ isAuthenticated: !!user });
     });
 
   }
+
+
 
   getFonts = () => Font.loadAsync({
     'nunito-regular': require('./assets/fonts/Nunito-Regular.ttf'),
@@ -37,7 +44,6 @@ export default class App extends React.Component {
 
   render() {
     if (!this.state.fontsLoaded || !this.state.isAuthReady) {
-      console.log('loading');
       return (
         <AppLoading
           startAsync={this.getFonts}

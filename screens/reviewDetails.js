@@ -1,13 +1,14 @@
 import React, { useState, useEffect } from 'react'
-import Card from '../shared/card'
 import { View, Text, StyleSheet, FlatList, TouchableOpacity, Alert, TouchableWithoutFeedback, Keyboard, Modal, AsyncStorage, ActivityIndicator } from 'react-native'
 import TodoItem from '../components/todoItem'
 import AddTodo from '../components/addTodo'
 import { globalStyles } from '../styles/global'
 import { MaterialIcons } from '@expo/vector-icons'
 import EditForm from './editForm'
-import axios from 'axios';
 import FlatButton from '../shared/button';
+import * as firebase from 'firebase'
+import { decode, encode } from 'base-64'
+
 
 
 export default function ReviewDetails({ navigation }) {
@@ -25,6 +26,12 @@ export default function ReviewDetails({ navigation }) {
     const [todoList, setList] = useState([]);
     const [todoTitle, setTodoTitle] = useState(title);
 
+    var db = firebase.firestore();
+
+    if (!global.btoa) { global.btoa = encode }
+
+    if (!global.atob) { global.atob = decode }
+
     useEffect(() => {
         storeData();
     }, []);
@@ -33,28 +40,25 @@ export default function ReviewDetails({ navigation }) {
     const storeData = () => {
         setloading(false);
         setOffline(false);
-        axios.get('https://my-json-server.typicode.com/DoaaWael/ReactNative/TodoPoint', {
-            params: {
-                todoListKey: id
-            }
-        }).then((res => {
-            AsyncStorage.setItem('TodoPoint', JSON.stringify(res.data));
-        })).catch(error => { console.log(error + "Error"), setOffline(true) });
-        displayData();
+        console.log(item);
+        console.log(item.key);
+        db.collection("TodoPoint").where("todoListKey", "==", item.key)
+            .get()
+            .then((querySnapshot) => {
+                setloading(true);
+                setList([]);
+                querySnapshot.forEach((doc) => {
+                    console.log(doc.data())
+                    setList((prevTodos) => {
+                        return [
+                            doc.data(),
+                            ...prevTodos
+                        ]
+                    })
+                });
+            }).catch((error) => { console.log(error), setOffline(true) })
 
-    }
 
-    const displayData = async () => {
-
-        try {
-            let list = await AsyncStorage.getItem('TodoPoint');
-            setList(JSON.parse(list));
-            setloading(true);
-
-        } catch (error) {
-            setOffline(true);
-            console.log(error);
-        }
     }
 
 
@@ -62,22 +66,21 @@ export default function ReviewDetails({ navigation }) {
         item.title = todoTitle;
         let list = todoList;
         editTodo(item);
-        console.log(list);
-        updateAll();
     }, [todoList, todoTitle])
 
-    const updateAll = async () => {
-        try {
-            await AsyncStorage.setItem('TodoPoint', JSON.stringify(todoList))
-                .catch(error => { console.log(error + "Error") });
-        } catch (error) {
-            console.log(error);
-        }
-    }
 
     const submitHandler = (title) => {
         if (title.length > 3) {
-
+            db.collection("TodoPoint").add({
+                title: title,
+                key: Date.now().toString(),
+                check: false,
+                todoListKey: item.key,
+            }).then((docRef) => {
+                console.log("Document written with ID: ", docRef.id);
+            }).catch((error) => {
+                console.error("Error adding document: ", error);
+            });
             setList((prevList) => {
                 return [
                     ...prevList,
@@ -92,32 +95,56 @@ export default function ReviewDetails({ navigation }) {
 
     }
 
-    const checkHandler = async (todoPoint) => {
+    const checkHandler = async (item) => {
+
+        var todoItem = db.collection("TodoPoint").where('key', '==', item.key);
+        todoItem.get().then((querySnapshot) => {
+            querySnapshot.forEach((doc) => {
+                if (item.check) {
+                    doc.ref.update({ check: false });
+                } else {
+                    doc.ref.update({ check: true });
+                }
+            });
+        });
         setList(() => {
 
-            if (todoPoint.check) {
-                todoPoint.check = false;
+            if (item.check) {
+                item.check = false;
             } else {
-                todoPoint.check = true;
+                item.check = true;
             }
             return todoList;
         })
-        updateAll();
+
     }
 
     const deleteHandler = (item) => {
         var key = item.key;
+        var todoItem = db.collection('TodoPoint').where('key', '==', key);
+        todoItem.get().then((querySnapshot) => {
+            querySnapshot.forEach((doc) => {
+                console.log(doc.data())
+                doc.ref.delete();
+                console.log("Document successfully deleted!");
+            });
+        });
         setList((prevList) => {
             return [...prevList.filter(item => item.key != key)];
         })
-        updateAll();
+
     }
 
     const editHandler = (item) => {
+        var todoItem = db.collection("TodoPoint").where('key', '==', item.key);
+        todoItem.get().then((querySnapshot) => {
+            querySnapshot.forEach((doc) => {
+                doc.ref.update({ title: item.title });
+            });
+        });
         setList((prevList) => {
             return [item, ...prevList.filter((todoitem) => todoitem.key != item.key)]
         })
-        updateAll();
     }
 
     const editTodoTitle = (item) => {

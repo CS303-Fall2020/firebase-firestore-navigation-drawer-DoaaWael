@@ -1,22 +1,56 @@
 import React from 'react'
-import { StyleSheet, Text, View, Image } from 'react-native'
+import { StyleSheet, Text, View, Image, TouchableOpacity } from 'react-native'
 import { MaterialIcons } from '@expo/vector-icons'
+import * as firebase from 'firebase';
 
 
-export default function Header({ navigation, title }) {
+export default function Header({ navigation, title, icons }) {
     const openMenu = () => {
         navigation.openDrawer();
     }
 
-    return (
-        <View style={styles.header}>
-            <MaterialIcons name='menu' size={28} onPress={openMenu} style={styles.icon} />
-            <View style={styles.headerTitle}>
-                <Image source={require('../assets/Logo.png')} style={styles.headerImage} />
-                <Text style={styles.headerText}>{title}</Text>
+    const onLogoutPress = () => {
+        console.log('logout');
+        firebase.auth().signOut();
+    }
+    if (icons) {
+        return (
+            <View style={styles.header}>
+                <View style={styles.left}>
+                    <View style={styles.headerTitle}>
+                        <Text style={styles.headerText}>{title}</Text>
+                    </View>
+                </View>
+                <TouchableOpacity onPress={onLogoutPress}>
+                    <View style={styles.button}>
+                        <Text style={styles.textButton}>
+                            Logout
+                </Text>
+                    </View>
+                </TouchableOpacity>
             </View>
-        </View>
-    )
+        )
+    } else {
+        return (
+            <View style={styles.header}>
+                <View style={styles.left}>
+                    <MaterialIcons name='menu' size={28} onPress={openMenu} style={styles.icon} />
+
+                    <View style={styles.headerTitle}>
+                        <Image source={require('../assets/Logo.png')} style={styles.headerImage} />
+                        <Text style={styles.headerText}>{title}</Text>
+                    </View>
+                </View>
+                <TouchableOpacity onPress={onLogoutPress}>
+                    <View style={styles.button}>
+                        <Text style={styles.textButton}>
+                            Logout
+                    </Text>
+                    </View>
+                </TouchableOpacity>
+            </View>
+        )
+    }
 }
 
 const styles = StyleSheet.create({
@@ -25,7 +59,7 @@ const styles = StyleSheet.create({
         height: '100%',
         flexDirection: 'row',
         alignItems: 'center',
-        justifyContent: 'center',
+        justifyContent: 'space-evenly',
     },
     headerText: {
         fontWeight: 'bold',
@@ -36,7 +70,8 @@ const styles = StyleSheet.create({
     },
     icon: {
         position: 'absolute',
-        right: 260,
+        justifyContent: 'center',
+        top: 10,
         color: '#fff',
 
     },
@@ -46,9 +81,21 @@ const styles = StyleSheet.create({
         flexDirection: 'row',
         // left: 120,
     },
+    left: {
+        flex: 4,
+    },
     headerImage: {
         marginTop: 5,
         width: 35,
         height: 47,
+    },
+    button: {
+        flex: 1,
+        // alignContent: 'center',
+        justifyContent: 'center',
+    },
+    textButton: {
+        color: '#fff',
     }
+
 })

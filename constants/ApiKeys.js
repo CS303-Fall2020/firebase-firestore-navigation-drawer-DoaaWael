@@ -10,3 +10,16 @@ export default {
         measurementId: "G-FFGWYMHJQ9"
     },
 }
+const firebase = require("firebase");
+// Required for side-effects
+require("firebase/firestore");
+
+firebase.initializeApp({
+    apiKey: "AIzaSyCFrSpOtrM6ScQ-jNeh0w5ifIdjzls-vqs",
+    authDomain: "todoapp-b8b12.firebaseapp.com",
+    projectId: "todoapp-b8b12"
+});
+
+// var db = firebase.firestore();
+
+
